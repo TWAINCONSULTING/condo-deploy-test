@@ -3,6 +3,8 @@ import { Mail, Building2, AlertTriangle, Lightbulb } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AboutDialog } from '../ui/AboutDialog';
 import { useNotificationStore } from '../../store/notificationStore';
+import { supabase } from '../../lib/supabase';
+import { checkSupabaseConnection } from '../../lib/supabase';
 
 export function Footer() {
   const [email, setEmail] = useState('');
@@ -25,10 +27,25 @@ export function Footer() {
 
     try {
       setIsSubmitting(true);
+
+      // First check if we have a valid Supabase connection
+      const isConnected = await checkSupabaseConnection();
+      if (!isConnected) {
+        throw new Error('Kunne ikke koble til databasen. Vennligst prøv igjen senere.');
+      }
       
-      // Here you would typically send the email to your backend
-      // For demo purposes, we'll just simulate a successful submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Insert the contact request into Supabase
+      const { error } = await supabase
+        .from('contact_requests')
+        .insert([
+          { 
+            email,
+            status: 'new',
+            created_at: new Date().toISOString()
+          }
+        ]);
+
+      if (error) throw error;
       
       addNotification({
         type: 'success',
@@ -39,10 +56,11 @@ export function Footer() {
       setEmail('');
       navigate('/takk');
     } catch (error) {
+      console.error('Contact form error:', error);
       addNotification({
         type: 'error',
-        message: 'Beklager, noe gikk galt. Vennligst prøv igjen.',
-        duration: 3000
+        message: error instanceof Error ? error.message : 'Beklager, noe gikk galt. Vennligst prøv igjen.',
+        duration: 5000
       });
     } finally {
       setIsSubmitting(false);
