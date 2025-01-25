@@ -2,18 +2,50 @@ import React, { useState } from 'react';
 import { Mail, Building2, AlertTriangle, Lightbulb } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AboutDialog } from '../ui/AboutDialog';
+import { useNotificationStore } from '../../store/notificationStore';
 
 export function Footer() {
   const [email, setEmail] = useState('');
   const [showAboutDialog, setShowAboutDialog] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const { addNotification } = useNotificationStore();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email.trim()) {
-      console.log('Email submitted:', email);
+    
+    if (!email.trim() || !email.includes('@')) {
+      addNotification({
+        type: 'error',
+        message: 'Vennligst oppgi en gyldig e-postadresse',
+        duration: 3000
+      });
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      
+      // Here you would typically send the email to your backend
+      // For demo purposes, we'll just simulate a successful submission
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      addNotification({
+        type: 'success',
+        message: 'Takk for din interesse! Vi tar kontakt snart.',
+        duration: 3000
+      });
+      
       setEmail('');
       navigate('/takk');
+    } catch (error) {
+      addNotification({
+        type: 'error',
+        message: 'Beklager, noe gikk galt. Vennligst prøv igjen.',
+        duration: 3000
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -75,12 +107,14 @@ export function Footer() {
                 placeholder="Din e-postadresse"
                 className="bg-base-light0 w-full px-3 py-2 text-sm rounded-lg text-condo-dark placeholder-condo-dark border border-condo-med p-2"
                 required
+                disabled={isSubmitting}
               />
               <button
                 type="submit"
-                className="w-full px-3 py-2 text-sm text-base-light0 rounded-lg font-medium hover:bg-condo-med bg-condo-dark transition-colors "
+                disabled={isSubmitting}
+                className="w-full px-3 py-2 text-sm text-base-light0 rounded-lg font-medium hover:bg-condo-med bg-condo-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Ta kontakt
+                {isSubmitting ? 'Sender...' : 'Ta kontakt'}
               </button>
             </form>
           </div>
